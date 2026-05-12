@@ -51,9 +51,37 @@ json_escape() {
   local s="$1"
   s=${s//\\/\\\\}
   s=${s//\"/\\\"}
+  s=${s//$'\b'/\\b}
+  s=${s//$'\f'/\\f}
   s=${s//$'\n'/\\n}
   s=${s//$'\r'/}
+  s=${s//$'\t'/\\t}
   printf '%s' "$s"
+}
+
+format_duration_compact() {
+  local seconds="$1"
+  if (( seconds % 86400 == 0 )); then
+    printf '%d day(s)' "$((seconds / 86400))"
+  elif (( seconds % 3600 == 0 )); then
+    printf '%d hour(s)' "$((seconds / 3600))"
+  elif (( seconds % 60 == 0 )); then
+    printf '%d minute(s)' "$((seconds / 60))"
+  else
+    printf '%d second(s)' "$seconds"
+  fi
+}
+
+join_names() {
+  local out=""
+  local item
+  for item in "$@"; do
+    if [[ -n "$out" ]]; then
+      out+=", "
+    fi
+    out+="$item"
+  done
+  printf '%s' "$out"
 }
 
 discord_embed() {
@@ -63,15 +91,16 @@ discord_embed() {
 
   [[ -z "$DISCORD_WEBHOOK_URL" ]] && return 0
 
-  local esc_title esc_desc esc_user esc_logo ts payload
+  local esc_title esc_desc esc_user esc_logo esc_host ts payload
   esc_title="$(json_escape "$title")"
   esc_desc="$(json_escape "$description")"
   esc_user="$(json_escape "$DISCORD_USERNAME")"
   esc_logo="$(json_escape "$DISCORD_LOGO_URL")"
+  esc_host="$(json_escape "$HOSTNAME_SHORT")"
   ts="$(now_iso_utc)"
 
   payload=$(cat <<JSON
-{"username":"$esc_user","avatar_url":"$esc_logo","embeds":[{"title":"$esc_title","description":"$esc_desc","color":$color,"thumbnail":{"url":"$esc_logo"},"footer":{"text":"$HOSTNAME_SHORT"},"timestamp":"$ts"}]}
+{"username":"$esc_user","avatar_url":"$esc_logo","embeds":[{"title":"$esc_title","description":"$esc_desc","color":$color,"thumbnail":{"url":"$esc_logo"},"footer":{"text":"$esc_host"},"timestamp":"$ts"}]}
 JSON
 )
 
@@ -249,7 +278,8 @@ for entry in "${NODES[@]}"; do
       last_wol="$(read_int_file "$stamp_last_wol" 0)"
 
       if (( last_wol > 0 )) && (( now - last_wol <= WOL_SUCCESS_WINDOW )); then
-        discord_embed 5763719 "🟢 Node Online (WOL Success)" "Node **$name** ($ip) is back online within **10 minutes** of WOL."
+        wol_window_text="$(format_duration_compact "$WOL_SUCCESS_WINDOW")"
+        discord_embed 5763719 "🟢 Node Online (WOL Success)" "Node **$name** ($ip) is back online within **$wol_window_text** of WOL."
       else
         discord_embed 3066993 "✅ Node Online" "Node **$name** ($ip) is back online."
       fi
@@ -296,7 +326,7 @@ if (( ${#offline_nodes[@]} >= 2 )); then
   start="$(read_int_file "$cluster_incident_start" "$now")"
   duration=$((now - start))
 
-  offline_csv=$(IFS=', '; echo "${offline_nodes[*]}")
+  offline_csv="$(join_names "${offline_nodes[@]}")"
   send_staged_cluster_offline_notification "$duration" "$cluster_notify_stage" "${#offline_nodes[@]}" "$offline_csv"
 else
   if [[ -f "$cluster_incident_start" ]]; then
