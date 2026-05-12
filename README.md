@@ -34,7 +34,7 @@ WOL-lähetyksistä ei lähetetä Discord-viestiä joka kerta (ei spämmiä).
 ### Node palaa online
 Kun node palaa online:
 
-- jos se tapahtuu `WOL_SUCCESS_WINDOW`-ajan sisällä (oletus 10 min) viimeisestä WOL-lähetyksestä, viesti on: **Node Online (WOL Success)**
+- jos se tapahtuu `WOL_SUCCESS_WINDOW`-ajan sisällä (oletus 10 min) **viimeisimmästä** WOL-lähetyksestä, viesti on: **Node Online (WOL Success)**
 - muuten viesti on normaali: **Node Online**
 
 ## Discord-viestien design

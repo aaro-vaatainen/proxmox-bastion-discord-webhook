@@ -61,11 +61,11 @@ json_escape() {
 
 format_duration_compact() {
   local seconds="$1"
-  if (( seconds % 86400 == 0 )); then
+  if (( seconds >= 86400 )); then
     printf '%d day(s)' "$((seconds / 86400))"
-  elif (( seconds % 3600 == 0 )); then
+  elif (( seconds >= 3600 )); then
     printf '%d hour(s)' "$((seconds / 3600))"
-  elif (( seconds % 60 == 0 )); then
+  elif (( seconds >= 60 )); then
     printf '%d minute(s)' "$((seconds / 60))"
   else
     printf '%d second(s)' "$seconds"
