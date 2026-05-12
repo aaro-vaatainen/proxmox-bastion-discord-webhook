@@ -13,7 +13,7 @@ DISCORD_LOGO_URL="https://i.imgur.com/zlKIds2.png"
 PING_COUNT=1
 PING_TIMEOUT=1
 
-WOL_SUCCESS_WINDOW=600 # if node returns within this many seconds after WOL => "WOL success"
+WOL_SUCCESS_WINDOW=600 # if node returns within this many seconds after last WOL => "WOL success"
 
 # Offline notice stages: now, 10 min, 1h, 24h
 OFFLINE_NOTIFY_SCHEDULE=(0 600 3600 86400)
@@ -54,7 +54,7 @@ json_escape() {
   s=${s//$'\b'/\\b}
   s=${s//$'\f'/\\f}
   s=${s//$'\n'/\\n}
-  s=${s//$'\r'/}
+  s=${s//$'\r'/\\r}
   s=${s//$'\t'/\\t}
   printf '%s' "$s"
 }
@@ -278,8 +278,9 @@ for entry in "${NODES[@]}"; do
       last_wol="$(read_int_file "$stamp_last_wol" 0)"
 
       if (( last_wol > 0 )) && (( now - last_wol <= WOL_SUCCESS_WINDOW )); then
+        wol_elapsed_text="$(format_duration_compact "$((now - last_wol))")"
         wol_window_text="$(format_duration_compact "$WOL_SUCCESS_WINDOW")"
-        discord_embed 5763719 "🟢 Node Online (WOL Success)" "Node **$name** ($ip) is back online within **$wol_window_text** of WOL."
+        discord_embed 5763719 "🟢 Node Online (WOL Success)" "Node **$name** ($ip) is back online **$wol_elapsed_text** after WOL (success window: **$wol_window_text**)."
       else
         discord_embed 3066993 "✅ Node Online" "Node **$name** ($ip) is back online."
       fi
